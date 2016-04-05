@@ -1,0 +1,51 @@
+##
+### be sure you are conneted to Azure and have selected your subscription:
+### Select-AzureSubscription -SubscriptionName $SubscriptionName 
+##
+
+# create queue (run once)
+$queuename = 'scheduler'
+$storekey = 'P4VKSdv6wuIq5tTE1qFNUJUNFT45riNO57k6Xqx6ze7t3wF2/Pf/MAtpsGk0cYqsPW9CxcGLB1XHce4x2HgsRQ=='
+$storecontext = New-AzureStorageContext -StorageAccountName rg2407340 -StorageAccountKey $storekey
+New-AzureStorageQueue –Name $queuename -Context $storecontext
+
+# remove queue (run once)
+$queuename = 'scheduler'
+$storekey = 'P4VKSdv6wuIq5tTE1qFNUJUNFT45riNO57k6Xqx6ze7t3wF2/Pf/MAtpsGk0cYqsPW9CxcGLB1XHce4x2HgsRQ=='
+$storecontext = New-AzureStorageContext -StorageAccountName rg2407340 -StorageAccountKey $storekey
+Remove-AzureStorageQueue –Name $queuename –Context $storecontext
+
+# test for existence of queue
+$queuename = 'scheduler'
+$queue = Get-AzureStorageQueue -Name $queuename -Context $storecontext
+Write-Output "queue name = $($queue.Name)"
+
+# send message to queue
+$queuename = 'scheduler'
+$messagetext = 'somescript.ps1'
+$queue = Get-AzureStorageQueue -Name $queuename -Context $storecontext
+$message = New-Object -TypeName Microsoft.WindowsAzure.Storage.Queue.CloudQueueMessage -ArgumentList $messagetext
+$queue.CloudQueue.AddMessage($message)
+
+# retrieve message from queue
+$queuename = 'scheduler'
+$queue = Get-AzureStorageQueue -Name $queuename -Context $storecontext
+$timespan = [System.TimeSpan]::FromSeconds(60)
+$queuedmessage = $queue.CloudQueue.GetMessage($timespan)
+Write-Output "queued message = $queuedmessage"
+
+# dequeue message
+$queuename = 'scheduler'
+$timespan = [System.TimeSpan]::FromHours(1)
+$queue = Get-AzureStorageQueue -Name $queuename -Context $storecontext
+$queuedmessage = $queue.CloudQueue.GetMessage($timespan) # this may be incorrect; get message instead?
+$queue.CloudQueue.DeleteMessage($queuedmessage)
+
+# verify queue count, clear queue
+$queuename = 'scheduler'
+$timespan = [System.TimeSpan]::FromHours(4)
+$queue = Get-AzureStorageQueue -Name $queuename -Context $storecontext
+#$queuedmessage = $queue.CloudQueue.GetMessage($timespan)
+Write-Output "queue count = $($queue.CloudQueue.ApproximateMessageCount)"
+
+$queue.CloudQueue.Clear()
